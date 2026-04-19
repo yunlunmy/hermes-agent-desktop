@@ -1,0 +1,141 @@
+.chat-message {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chat-message.user {
+  flex-direction: row-reverse;
+}
+
+.chat-message.system {
+  justify-content: center;
+}
+
+.message-avatar {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary, #f5f5f5);
+  border-radius: 50%;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.chat-message.user .message-avatar {
+  background: var(--primary-bg, #e6f3ff);
+}
+
+.message-content {
+  max-width: 80%;
+  padding: 12px 16px;
+  background: var(--bg-secondary, #f5f5f5);
+  border-radius: 12px;
+  border-top-left-radius: 4px;
+}
+
+.chat-message.user .message-content {
+  background: var(--primary-bg, #e6f3ff);
+  border-top-left-radius: 12px;
+  border-top-right-radius: 4px;
+}
+
+.message-header {
+  margin-bottom: 4px;
+}
+
+.message-role {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #666);
+}
+
+.message-body {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-primary, #333);
+}
+
+.message-body p {
+  margin: 0 0 12px 0;
+}
+
+.message-body p:last-child {
+  margin-bottom: 0;
+}
+
+.message-body pre {
+  background: #f4f4f4;
+  padding: 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+.message-body code {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+}
+
+.message-body p code {
+  background: #f4f4f4;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.message-body ul,
+.message-body ol {
+  margin: 12px 0;
+  padding-left: 24px;
+}
+
+.message-body li {
+  margin-bottom: 4px;
+}
+
+.message-body blockquote {
+  margin: 12px 0;
+  padding-left: 16px;
+  border-left: 4px solid var(--primary-color, #007acc);
+  color: var(--text-secondary, #666);
+}
+
+.message-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+}
+
+.message-body th,
+.message-body td {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color, #ddd);
+  text-align: left;
+}
+
+.message-body th {
+  background: var(--bg-secondary, #f5f5f5);
+  font-weight: 600;
+}
+
+.system-message {
+  background: #fff3cd;
+  color: #856404;
+  padding: 8px 16px;
+  border-radius: 16px;
+  font-size: 13px;
+}

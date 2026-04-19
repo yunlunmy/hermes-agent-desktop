@@ -1,0 +1,413 @@
+name: build-and-release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: build-${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    env:
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            platform: macos
+            family: macos
+          - os: windows-latest
+            platform: windows
+            family: windows
+          - os: ubuntu-22.04
+            platform: linux
+            family: linux
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux dependencies
+        if: matrix.family == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Install npm dependencies
+        run: npm install
+
+      - name: Build installers (macOS)
+        if: matrix.family == 'macos'
+        env:
+          OPENCLAW_BUNDLE_SKIP_VERIFY: "1"
+          APPLE_SIGNING_IDENTITY: "-"
+        run: |
+          rustup target add x86_64-apple-darwin
+
+          STAGE_DIR="release-stage/${{ matrix.platform }}"
+          mkdir -p "$STAGE_DIR"
+
+          build_and_stage_macos_target() {
+            local rust_target="$1"
+            local node_arch="$2"
+            local arch_alias="$3"
+
+            OPENCLAW_BUNDLE_NODE_ARCH="$node_arch" npm run prepare:openclaw-bundle
+            npx tauri build --target "$rust_target" --bundles app,dmg
+
+            local bundle_root="src-tauri/target/$rust_target/release/bundle"
+            if [ ! -d "$bundle_root" ]; then
+              bundle_root="src-tauri/target/release/bundle"
+            fi
+            if [ ! -d "$bundle_root" ]; then
+              echo "No bundle directory found for target: $rust_target"
+              exit 1
+            fi
+
+            local app_path
+            app_path="$(find "$bundle_root/macos" -maxdepth 1 -name '*.app' | head -n 1)"
+            if [ -z "$app_path" ]; then
+              echo "No macOS app bundle generated for target: $rust_target"
+              exit 1
+            fi
+            echo "Verifying app signature: $app_path"
+            codesign --verify --deep --strict --verbose=2 "$app_path"
+
+            local dmg_path
+            dmg_path="$(find "$bundle_root/dmg" -maxdepth 1 -name '*.dmg' | head -n 1)"
+            if [ -z "$dmg_path" ]; then
+              echo "No DMG generated for target: $rust_target"
+              exit 1
+            fi
+
+            local mount_dir
+            mount_dir="$(mktemp -d)"
+            hdiutil attach -nobrowse -mountpoint "$mount_dir" "$dmg_path"
+            local app_in_dmg
+            app_in_dmg="$(find "$mount_dir" -maxdepth 1 -name '*.app' | head -n 1)"
+            if [ -z "$app_in_dmg" ]; then
+              hdiutil detach "$mount_dir" || true
+              echo "No app bundle found inside DMG for target: $rust_target"
+              exit 1
+            fi
+            echo "Verifying app signature inside DMG: $app_in_dmg"
+            codesign --verify --deep --strict --verbose=2 "$app_in_dmg"
+            hdiutil detach "$mount_dir"
+
+            local app_tgz
+            app_tgz="$(find "$bundle_root/macos" -maxdepth 1 -name '*.app.tar.gz' | head -n 1)"
+            if [ -z "$app_tgz" ]; then
+              echo "No updater app tarball generated for target: $rust_target"
+              exit 1
+            fi
+            local app_tgz_renamed="openclaw-desktop_${arch_alias}.app.tar.gz"
+            cp "$app_tgz" "$STAGE_DIR/$app_tgz_renamed"
+            if [ ! -f "$app_tgz.sig" ]; then
+              echo "No updater app tarball signature generated for target: $rust_target"
+              exit 1
+            fi
+            cp "$app_tgz.sig" "$STAGE_DIR/$app_tgz_renamed.sig"
+
+            local dmg_basename
+            dmg_basename="$(basename "$dmg_path")"
+            if [ -e "$STAGE_DIR/$dmg_basename" ]; then
+              echo "Duplicated DMG asset name: $dmg_basename"
+              exit 1
+            fi
+            cp "$dmg_path" "$STAGE_DIR/$dmg_basename"
+            if [ -f "$dmg_path.sig" ]; then
+              cp "$dmg_path.sig" "$STAGE_DIR/$dmg_basename.sig"
+            fi
+          }
+
+          build_and_stage_macos_target "aarch64-apple-darwin" "arm64" "aarch64"
+          build_and_stage_macos_target "x86_64-apple-darwin" "x64" "x64"
+
+      - name: Build installers (Windows)
+        if: matrix.family == 'windows'
+        env:
+          OPENCLAW_BUNDLE_SKIP_VERIFY: "1"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $bundleRoot = "src-tauri/bundle/resources/openclaw-bundle"
+
+          function Assert-StepSuccess {
+            param([string]$Label)
+            if ($LASTEXITCODE -ne 0) {
+              throw "$Label failed with exit code $LASTEXITCODE"
+            }
+          }
+
+          function Assert-OfflineBundleReady {
+            param([string]$BundleRoot)
+            $requiredPaths = @(
+              "manifest.json",
+              "openclaw.tgz",
+              "node/node.exe",
+              "npm/bin/npm-cli.js",
+              "npm-cache"
+            )
+            foreach ($relativePath in $requiredPaths) {
+              $candidate = Join-Path $BundleRoot $relativePath
+              if (!(Test-Path $candidate)) {
+                throw "Offline bundle path missing: $candidate"
+              }
+            }
+            $prefixPath = Join-Path $BundleRoot "prefix"
+            if (!(Test-Path $prefixPath)) {
+              Write-Output "::warning title=Offline bundle prefix missing::$prefixPath"
+            }
+
+            $bundleSizeBytes = (Get-ChildItem -Path $BundleRoot -Recurse -File | Measure-Object -Property Length -Sum).Sum
+            if ($null -eq $bundleSizeBytes -or $bundleSizeBytes -lt 50MB) {
+              throw "Offline bundle suspiciously small: SizeBytes=$bundleSizeBytes Root=$BundleRoot"
+            }
+          }
+
+          function Invoke-PrepareBundleWithRetry {
+            param([int]$MaxAttempts = 3)
+            for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+              Write-Output "Preparing offline bundle (attempt $attempt/$MaxAttempts)..."
+              npm run prepare:openclaw-bundle
+              if ($LASTEXITCODE -eq 0) {
+                try {
+                  Assert-OfflineBundleReady -BundleRoot $bundleRoot
+                  Write-Output "Offline bundle ready: $bundleRoot"
+                  return
+                } catch {
+                  Write-Output "::warning title=Offline bundle validation failed on attempt $attempt::$($_.Exception.Message)"
+                }
+              } else {
+                Write-Output "::warning title=Bundle prepare command failed on attempt $attempt::ExitCode=$LASTEXITCODE"
+              }
+              Start-Sleep -Seconds (2 * $attempt)
+            }
+            throw "Failed to prepare a valid offline bundle after $MaxAttempts attempts."
+          }
+
+          function Copy-DirectoryRobust {
+            param(
+              [string]$Source,
+              [string]$Destination
+            )
+            New-Item -ItemType Directory -Force -Path $Destination | Out-Null
+            robocopy $Source $Destination /E /R:2 /W:2 /NFL /NDL /NJH /NJS /NP
+            $robocopyExit = $LASTEXITCODE
+            if ($robocopyExit -ge 8) {
+              throw "robocopy failed with exit code $robocopyExit (source=$Source, destination=$Destination)"
+            }
+          }
+
+          function Assert-ZipContainsOfflineBundle {
+            param([string]$ZipPath)
+            Add-Type -AssemblyName System.IO.Compression.FileSystem
+            $zip = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
+            try {
+              $entries = $zip.Entries | ForEach-Object {
+                $normalized = $_.FullName.Replace('\', '/')
+                $normalized = $normalized.TrimStart('/')
+                if ($normalized.StartsWith("./")) {
+                  $normalized = $normalized.Substring(2)
+                }
+                $normalized
+              }
+              $requiredEntries = @(
+                "bundle/resources/openclaw-bundle/manifest.json",
+                "bundle/resources/openclaw-bundle/openclaw.tgz",
+                "bundle/resources/openclaw-bundle/node/node.exe",
+                "bundle/resources/openclaw-bundle/npm/bin/npm-cli.js",
+                "bundle/resources/openclaw-bundle/npm-cache/"
+              )
+              foreach ($required in $requiredEntries) {
+                if (-not (($entries -contains $required) -or ($entries | Where-Object { $_ -like "$required*" }))) {
+                  throw "Portable zip missing required entry: $required"
+                }
+              }
+              $payloadEntries = $entries | Where-Object {
+                $_ -like "bundle/resources/openclaw-bundle/prefix/*" -or
+                $_ -like "bundle/resources/openclaw-bundle/npm-cache/*"
+              }
+              if ($payloadEntries.Count -eq 0) {
+                throw "Portable zip missing offline payload entries (prefix/npm-cache)."
+              }
+            } finally {
+              $zip.Dispose()
+            }
+          }
+
+          function New-PortableZipWithOfflineBundle {
+            $portableDir = "src-tauri/target/release/bundle/portable"
+            $portableRoot = Join-Path $portableDir "openclaw-desktop-windows-portable"
+            $portableZip = Join-Path $portableDir "openclaw-desktop-windows-portable.zip"
+            $builtExe = "src-tauri/target/release/openclaw-desktop.exe"
+            if (!(Test-Path $builtExe)) {
+              throw "Windows executable not found: $builtExe"
+            }
+
+            Remove-Item -Recurse -Force $portableRoot -ErrorAction SilentlyContinue
+            New-Item -ItemType Directory -Force -Path (Join-Path $portableRoot "bundle/resources") | Out-Null
+            Copy-Item $builtExe (Join-Path $portableRoot "openclaw-desktop.exe") -Force
+            Copy-DirectoryRobust -Source "src-tauri/bundle/resources" -Destination (Join-Path $portableRoot "bundle/resources")
+            Assert-OfflineBundleReady -BundleRoot (Join-Path $portableRoot "bundle/resources/openclaw-bundle")
+            Remove-Item -Force $portableZip -ErrorAction SilentlyContinue
+            tar.exe -a -c -f $portableZip -C $portableRoot .
+            Assert-StepSuccess "tar portable zip"
+            Assert-ZipContainsOfflineBundle -ZipPath $portableZip
+          }
+
+          Invoke-PrepareBundleWithRetry
+
+          $msiLog = "windows-msi-build.log"
+          $msiReady = $true
+          npx tauri build --bundles msi *>&1 | Tee-Object -FilePath $msiLog
+          if ($LASTEXITCODE -ne 0) {
+            $tail = (Get-Content $msiLog -Tail 120) -join "`n"
+            $escaped = $tail.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+            Write-Output "::warning title=MSI build failed; fallback to portable zip::$escaped"
+            $msiReady = $false
+          }
+
+          if ($msiReady) {
+            $msiFile = Get-ChildItem "src-tauri/target/release/bundle/msi" -Filter "*.msi" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+            if ($null -eq $msiFile) {
+              Write-Output "::warning title=MSI artifact missing; fallback to portable zip::No Windows MSI artifact found in bundle/msi"
+              $msiReady = $false
+            } elseif ($msiFile.Length -lt 50MB) {
+              Write-Output "::warning title=MSI artifact suspiciously small; fallback to portable zip::File=$($msiFile.Name), SizeBytes=$($msiFile.Length)"
+              $msiReady = $false
+            }
+          }
+
+          # Always produce our own validated portable zip, instead of relying on Tauri defaults.
+          New-PortableZipWithOfflineBundle
+
+          # Functional verification: portable zip -> offline payload -> openclaw gateway reachable.
+          node scripts/test-windows-portable-install.mjs src-tauri/target/release/bundle/portable/openclaw-desktop-windows-portable.zip
+
+          if (-not $msiReady) {
+            Write-Output "::warning title=MSI fallback::MSI installer is unavailable or suspiciously small; validated portable zip artifact is still published."
+          }
+
+      - name: Build installers (Linux)
+        if: matrix.family == 'linux'
+        env:
+          OPENCLAW_BUNDLE_SKIP_VERIFY: "1"
+        run: |
+          npm run prepare:openclaw-bundle
+          npx tauri build --bundles deb
+
+      - name: Upload macOS artifacts
+        if: matrix.family == 'macos'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-${{ matrix.platform }}
+          if-no-files-found: error
+          path: release-stage/${{ matrix.platform }}/*
+
+      - name: Upload Windows artifacts
+        if: matrix.family == 'windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-windows
+          if-no-files-found: error
+          path: |
+            src-tauri/target/release/bundle/msi/*
+            src-tauri/target/release/bundle/portable/*.zip
+
+      - name: Upload Linux artifacts
+        if: matrix.family == 'linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-linux
+          if-no-files-found: error
+          path: |
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/deb/*.sig
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Verify assets
+        run: ls -R release-assets
+
+      - name: Validate Windows portable offline payload
+        run: |
+          set -eo pipefail
+          mapfile -t ZIP_CANDIDATES < <(find release-assets -maxdepth 4 -type f -name '*windows-portable*.zip')
+          if [ "${#ZIP_CANDIDATES[@]}" -eq 0 ]; then
+            echo "missing portable asset under release-assets"
+            ls -R release-assets
+            exit 1
+          fi
+          ZIP_PATH=""
+          for candidate in "${ZIP_CANDIDATES[@]}"; do
+            if [[ "$candidate" == *"openclaw-desktop-windows-portable.zip" ]]; then
+              ZIP_PATH="$candidate"
+              break
+            fi
+          done
+          if [ -z "$ZIP_PATH" ]; then
+            ZIP_PATH="${ZIP_CANDIDATES[0]}"
+          fi
+          echo "using portable asset: $ZIP_PATH"
+          unzip -Z -1 "$ZIP_PATH" | sed -E 's#^([.]/)+##; s#^/##' > release-assets/windows-portable-list.txt
+          grep -q "bundle/resources/openclaw-bundle/manifest.json" release-assets/windows-portable-list.txt
+          grep -q "bundle/resources/openclaw-bundle/openclaw.tgz" release-assets/windows-portable-list.txt
+          grep -q "bundle/resources/openclaw-bundle/node/node.exe" release-assets/windows-portable-list.txt
+          grep -q "bundle/resources/openclaw-bundle/npm/bin/npm-cli.js" release-assets/windows-portable-list.txt
+          if ! grep -q "bundle/resources/openclaw-bundle/prefix/" release-assets/windows-portable-list.txt && \
+             ! grep -q "bundle/resources/openclaw-bundle/npm-cache/" release-assets/windows-portable-list.txt; then
+            echo "portable zip missing offline payload entries (prefix/npm-cache)"
+            exit 1
+          fi
+
+      - name: Generate updater manifest
+        run: |
+          node scripts/generate-updater-manifest.mjs release-assets "${{ github.ref_name }}" "${{ github.repository }}"
+          node -e 'const fs=require("node:fs");const m=JSON.parse(fs.readFileSync("release-assets/latest.json","utf8"));const req=["darwin-aarch64","darwin-x86_64"];const miss=req.filter(k=>!m.platforms||!m.platforms[k]);if(miss.length){console.error("Missing required macOS updater targets:",miss.join(", "));process.exit(1);}console.log("macOS updater targets OK:",req.join(", "));'
+          cat release-assets/latest.json
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: release-assets/**

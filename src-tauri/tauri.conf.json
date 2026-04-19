@@ -1,0 +1,65 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Hermes Agent Desktop",
+  "version": "0.2.0",
+  "identifier": "com.nousresearch.hermes-agent",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Hermes Agent Desktop",
+        "width": 1400,
+        "height": 900,
+        "minWidth": 1000,
+        "minHeight": 700,
+        "resizable": true,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "createUpdaterArtifacts": true,
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "targets": [
+      "appimage",
+      "deb",
+      "dmg",
+      "msi",
+      "rpm"
+    ],
+    "resources": [
+      "bundle/resources/**/*"
+    ],
+    "windows": {
+      "wix": {
+        "upgradeCode": "HERMES-AGENT-DESKTOP-2025-V1"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/nousresearch/hermes-agent-desktop/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDgzMjgzNUE0RUQ2QTk5OEYKUldTUG1XcnRwRFVvZzNZV2ZGTVNEZzdJb0puOXRndzl2dGF1NjMyRlM3dTh0dUlwNlJzaDZEM2kK",
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}

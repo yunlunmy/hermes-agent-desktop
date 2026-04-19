@@ -1,0 +1,30 @@
+[package]
+name = "hermes-agent-desktop"
+version = "0.2.0"
+description = "Hermes Agent Desktop - AI Agent with multi-model support"
+authors = ["Hermes Agent Team"]
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2.3.1", features = [] }
+
+[dependencies]
+base64 = "0.22"
+json5 = "0.4"
+reqwest = { version = "0.12.12", features = ["json", "rustls-tls", "stream"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tauri = { version = "2.3.1", features = [] }
+tauri-plugin-process = "2"
+tauri-plugin-store = "2"
+tokio = { version = "1.43", features = ["full"] }
+futures = "0.3"
+uuid = { version = "1.16", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-updater = "2"

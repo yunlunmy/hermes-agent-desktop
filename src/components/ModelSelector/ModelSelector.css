@@ -1,0 +1,152 @@
+.model-selector {
+  position: relative;
+  background: var(--bg-secondary, #f5f5f5);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 8px 0;
+}
+
+.model-selector-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.model-mode-icon {
+  font-size: 18px;
+}
+
+.model-mode-label {
+  flex: 1;
+  font-weight: 500;
+  color: var(--text-primary, #333);
+}
+
+.model-selector-arrow {
+  color: var(--text-secondary, #666);
+  font-size: 12px;
+}
+
+.model-selector-dropdown {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color, #ddd);
+}
+
+.model-modes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.model-mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: var(--bg-primary, #fff);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.model-mode-btn:hover {
+  background: var(--bg-hover, #e8e8e8);
+}
+
+.model-mode-btn.active {
+  border-color: var(--primary-color, #007acc);
+  background: var(--primary-bg, #e6f3ff);
+}
+
+.mode-icon {
+  font-size: 20px;
+}
+
+.mode-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mode-label {
+  font-weight: 500;
+  color: var(--text-primary, #333);
+}
+
+.mode-desc {
+  font-size: 12px;
+  color: var(--text-secondary, #666);
+}
+
+.manual-model-select {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--bg-primary, #fff);
+  border-radius: 8px;
+}
+
+.manual-model-select label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--text-primary, #333);
+}
+
+.manual-model-select select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 6px;
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #333);
+  font-size: 14px;
+}
+
+.ollama-status {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--bg-primary, #fff);
+  border-radius: 8px;
+}
+
+.ollama-status h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: var(--text-primary, #333);
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ccc;
+}
+
+.status-indicator.online .status-dot {
+  background: #4caf50;
+}
+
+.status-indicator.offline .status-dot {
+  background: #f44336;
+}
+
+.model-selector-error {
+  margin-top: 12px;
+  padding: 10px;
+  background: #ffebee;
+  color: #c62828;
+  border-radius: 6px;
+  font-size: 13px;
+}
