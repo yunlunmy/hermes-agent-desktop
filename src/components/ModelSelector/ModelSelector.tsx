@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useModelStore, ModelMode, ModelInfo } from '../../stores/modelStore';
+import { useModelStore, ModelMode } from '../../stores/modelStore';
 import './ModelSelector.css';
 
 const modeLabels: Record<ModelMode, { label: string; icon: string; description: string }> = {
@@ -14,7 +14,6 @@ export function ModelSelector() {
     mode, 
     availableModels, 
     ollamaStatus, 
-    isLoading, 
     error,
     setMode, 
     fetchAvailableModels, 

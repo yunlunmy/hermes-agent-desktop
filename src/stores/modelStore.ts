@@ -51,7 +51,7 @@ interface ModelState {
   clearError: () => void;
 }
 
-export const useModelStore = create<ModelState>((set, get) => ({
+export const useModelStore = create<ModelState>((set) => ({
   mode: 'smart',
   availableModels: [],
   ollamaStatus: null,

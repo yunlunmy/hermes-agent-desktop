@@ -92,7 +92,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   sendMessage: async (content) => {
     const { currentConversationId, createConversation, addMessage } = get();
-    const { chat } = await import('./modelStore');
     
     let conversationId = currentConversationId;
     if (!conversationId) {

@@ -1,12 +1,10 @@
 import { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
 import { ModelSelector, ChatInterface } from "./components";
 import { useModelStore } from "./stores/modelStore";
 import { useChatStore } from "./stores/chatStore";
 import "./App.css";
 
 export default function App() {
-  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'chat' | 'skills' | 'memory' | 'settings'>('chat');
   
   const { checkOllamaStatus } = useModelStore();
