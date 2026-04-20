@@ -4,7 +4,7 @@ mod model_router;
 
 use base64::engine::general_purpose::{URL_SAFE, URL_SAFE_NO_PAD};
 use base64::Engine as _;
-use model_router::{ChatRequest, ModelMode, ModelRouter, RouterConfig, OllamaStatus, ChatMessage};
+use model_router::{ChatRequest, ModelMode, ModelRouter, RouterConfig, OllamaStatus};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::fs;
@@ -15,7 +15,6 @@ use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 use tauri::{Emitter, Manager, State};
-use tauri::async_runtime::block_on;
 
 const OFFICIAL_WEB_URL: &str = "http://127.0.0.1:18789/";
 const BOOTSTRAP_LOG_EVENT: &str = "bootstrap-log";
@@ -4526,7 +4525,9 @@ async fn chat_with_model(
     state: State<'_, RouterState>
 ) -> Result<model_router::ChatResponse, String> {
     let router = state.0.lock().map_err(|e| e.to_string())?;
-    router.chat(request).await
+    let result = router.chat(request).await;
+    drop(router);
+    result
 }
 
 #[tauri::command]
@@ -4534,7 +4535,9 @@ async fn list_available_models(
     state: State<'_, RouterState>
 ) -> Result<Vec<model_router::ModelInfo>, String> {
     let router = state.0.lock().map_err(|e| e.to_string())?;
-    router.list_available_models().await
+    let result = router.list_available_models().await;
+    drop(router);
+    result
 }
 
 #[tauri::command]

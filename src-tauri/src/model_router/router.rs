@@ -51,7 +51,7 @@ impl ModelRouter {
     }
 
     async fn smart_route(&self, request: ChatRequest) -> Result<ChatResponse, String> {
-        let config = self.get_config();
+        let _config = self.get_config();
         let task_type = self.analyze_task(&request);
         
         // Check if Ollama is available for simple tasks

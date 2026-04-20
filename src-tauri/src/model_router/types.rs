@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -99,4 +98,13 @@ pub struct OllamaModel {
 #[serde(rename_all = "camelCase")]
 pub struct OllamaTagsResponse {
     pub models: Vec<OllamaModel>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OllamaStatus {
+    pub endpoint: String,
+    pub reachable: bool,
+    pub models: Vec<String>,
+    pub error: Option<String>,
 }
