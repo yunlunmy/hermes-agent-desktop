@@ -1,7 +1,7 @@
-use super::FileMetadata;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct OcrResult {
     pub text: String,
     pub confidence: f32,
@@ -47,6 +47,7 @@ async fn extract_docx_text(file_path: &str) -> Result<String, String> {
 }
 
 // OCR for images using tesseract or cloud API
+#[allow(dead_code)]
 pub async fn perform_ocr_on_image(image_path: &str) -> Result<OcrResult, String> {
     // Placeholder for OCR implementation
     // In production, use:

@@ -42,7 +42,7 @@ pub async fn analyze_video(video_path: &str) -> Result<VideoAnalysisResult, Stri
     })
 }
 
-async fn get_video_metadata(video_path: &str) -> Result<FileMetadata, String> {
+async fn get_video_metadata(_video_path: &str) -> Result<FileMetadata, String> {
     // Placeholder for video metadata extraction
     // In production, use ffmpeg or ffprobe
     Ok(FileMetadata {
@@ -53,7 +53,7 @@ async fn get_video_metadata(video_path: &str) -> Result<FileMetadata, String> {
     })
 }
 
-async fn extract_keyframes(video_path: &str) -> Result<Vec<KeyframeInfo>, String> {
+async fn extract_keyframes(_video_path: &str) -> Result<Vec<KeyframeInfo>, String> {
     // Placeholder for keyframe extraction
     // In production:
     // 1. Use ffmpeg to extract frames at intervals
@@ -73,10 +73,11 @@ async fn extract_keyframes(video_path: &str) -> Result<Vec<KeyframeInfo>, String
 }
 
 // Extract frames from video at specified intervals
+#[allow(dead_code)]
 pub async fn extract_frames(
-    video_path: &str,
+    _video_path: &str,
     output_dir: &str,
-    interval_seconds: f64,
+    _interval_seconds: f64,
 ) -> Result<Vec<String>, String> {
     // Placeholder for frame extraction
     // In production, use ffmpeg command:

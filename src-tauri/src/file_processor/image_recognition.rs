@@ -45,7 +45,7 @@ pub async fn analyze_image(image_path: &str) -> Result<ImageAnalysisResult, Stri
     })
 }
 
-async fn get_image_metadata(image_path: &str) -> Result<FileMetadata, String> {
+async fn get_image_metadata(_image_path: &str) -> Result<FileMetadata, String> {
     // Use image crate to get dimensions
     // For now, return placeholder metadata
     Ok(FileMetadata {
@@ -57,6 +57,7 @@ async fn get_image_metadata(image_path: &str) -> Result<FileMetadata, String> {
 }
 
 // Extract text from image using OCR
+#[allow(dead_code)]
 pub async fn extract_text_from_image(image_path: &str) -> Result<String, String> {
     super::ocr::perform_ocr_on_image(image_path)
         .await
