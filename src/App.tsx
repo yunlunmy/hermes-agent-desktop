@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ModelSelector, ChatInterface, FileUploader, FilePreview } from "./components";
+import { ModelSelector, ChatInterface } from "./components";
 import { useModelStore } from "./stores/modelStore";
 import { useChatStore } from "./stores/chatStore";
 import "./App.css";

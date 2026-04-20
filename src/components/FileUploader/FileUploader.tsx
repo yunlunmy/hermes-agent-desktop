@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import './FileUploader.css';
 
 export interface UploadedFile {
@@ -123,7 +122,7 @@ export function FileUploader({ onFilesUploaded, maxFiles = 5 }: FileUploaderProp
       for (const file of fileArray) {
         const validation = validateFile(file);
         if (!validation.valid) {
-          setError(validation.error);
+          setError(validation.error || null);
           continue;
         }
 
