@@ -4,7 +4,7 @@ mod model_router;
 
 use base64::engine::general_purpose::{URL_SAFE, URL_SAFE_NO_PAD};
 use base64::Engine as _;
-use model_router::{ChatRequest, ModelMode, ModelRouter, RouterConfig, OllamaStatus};
+use model_router::{ChatRequest, ModelMode, ModelRouter, RouterConfig};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::fs;
@@ -71,14 +71,7 @@ struct LoginResult {
     details: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-struct OllamaStatus {
-    endpoint: String,
-    reachable: bool,
-    models: Vec<String>,
-    error: Option<String>,
-}
+
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -4500,12 +4493,12 @@ fn save_feishu_channel_config(app_id: String, app_secret: String) -> Result<Feis
 }
 
 // Model Router State
-struct RouterState(Arc<Mutex<ModelRouter>>);
+struct RouterState(Arc<tokio::sync::Mutex<ModelRouter>>);
 
 // Model Router Commands
 #[tauri::command]
 async fn get_router_config(state: State<'_, RouterState>) -> Result<RouterConfig, String> {
-    let router = state.0.lock().map_err(|e| e.to_string())?;
+    let router = state.0.lock().await;
     Ok(router.get_config())
 }
 
@@ -4514,7 +4507,7 @@ async fn set_router_config(
     config: RouterConfig,
     state: State<'_, RouterState>
 ) -> Result<(), String> {
-    let router = state.0.lock().map_err(|e| e.to_string())?;
+    let router = state.0.lock().await;
     router.update_config(config);
     Ok(())
 }
@@ -4524,27 +4517,23 @@ async fn chat_with_model(
     request: ChatRequest,
     state: State<'_, RouterState>
 ) -> Result<model_router::ChatResponse, String> {
-    let router = state.0.lock().map_err(|e| e.to_string())?;
-    let result = router.chat(request).await;
-    drop(router);
-    result
+    let router = state.0.lock().await;
+    router.chat(request).await
 }
 
 #[tauri::command]
 async fn list_available_models(
     state: State<'_, RouterState>
 ) -> Result<Vec<model_router::ModelInfo>, String> {
-    let router = state.0.lock().map_err(|e| e.to_string())?;
-    let result = router.list_available_models().await;
-    drop(router);
-    result
+    let router = state.0.lock().await;
+    router.list_available_models().await
 }
 
 #[tauri::command]
 async fn check_ollama_status(
     state: State<'_, RouterState>
-) -> Result<OllamaStatus, String> {
-    let router = state.0.lock().map_err(|e| e.to_string())?;
+) -> Result<model_router::OllamaStatus, String> {
+    let router = state.0.lock().await;
     Ok(router.check_ollama_status().await)
 }
 
@@ -4554,7 +4543,7 @@ async fn set_model_mode(
     manual_model: Option<String>,
     state: State<'_, RouterState>
 ) -> Result<(), String> {
-    let router = state.0.lock().map_err(|e| e.to_string())?;
+    let router = state.0.lock().await;
     let mut config = router.get_config();
     
     config.mode = match mode.as_str() {
@@ -4572,7 +4561,7 @@ async fn set_model_mode(
 fn main() {
     // Initialize model router with default config
     let router_config = RouterConfig::default();
-    let model_router = Arc::new(Mutex::new(ModelRouter::new(router_config)));
+    let model_router = Arc::new(tokio::sync::Mutex::new(ModelRouter::new(router_config)));
 
     tauri::Builder::default()
         .plugin(tauri_plugin_process::init())
