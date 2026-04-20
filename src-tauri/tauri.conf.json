@@ -56,7 +56,7 @@
       "endpoints": [
         "https://github.com/nousresearch/hermes-agent-desktop/releases/latest/download/latest.json"
       ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDgzMjgzNUE0RUQ2QTk5OEYKUldTUG1XcnRwRFVvZzNZV2ZGTVNEZzdJb0puOXRndzl2dGF1NjMyRlM3dTh0dUlwNlJzaDZEM2kK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEUzREJGM0JFOEJBQjlCMjIKUldRaW02dUx2dlBiNDI2SEIzZFZvOE8rMFZJTXY3K3daMmNHcjFYZCtCOVNNSk5odWtlbnNDNEsK",
       "windows": {
         "installMode": "passive"
       }
