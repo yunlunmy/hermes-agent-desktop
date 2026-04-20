@@ -70,6 +70,7 @@ impl OpenAIClient {
         })
     }
 
+    #[allow(dead_code)]
     pub async fn chat_stream(
         &self,
         model: &str,
@@ -98,6 +99,7 @@ impl OpenAIClient {
         Ok(response)
     }
 
+    #[allow(dead_code)]
     pub async fn list_models(&self) -> Result<Vec<ModelInfo>, String> {
         let response = self.client
             .get(format!("{}/models", self.base_url))

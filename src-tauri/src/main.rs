@@ -1723,6 +1723,7 @@ fn summarize_output(stdout: &[u8], stderr: &[u8]) -> String {
     }
 }
 
+#[allow(dead_code)]
 fn strip_ansi_and_controls(text: &str) -> String {
     let bytes = text.as_bytes();
     let mut i = 0usize;
@@ -1771,6 +1772,7 @@ fn strip_ansi_and_controls(text: &str) -> String {
     out
 }
 
+#[allow(dead_code)]
 fn normalize_oauth_output(raw: &str) -> String {
     let stripped = strip_ansi_and_controls(raw);
     let mut lines = stripped
@@ -2291,21 +2293,16 @@ fn copy_dir_with_native_tool(src: &PathBuf, dst: &PathBuf) -> Result<(), String>
             ])
             .output();
 
-        let mut robocopy_error: Option<String> = None;
         match robocopy_output {
             Ok(output) => {
                 let exit_code = output.status.code().unwrap_or(16);
                 if exit_code < 8 {
                     return Ok(());
                 }
-                robocopy_error = Some(format!(
-                    "robocopy failed with exit code {}: {}",
-                    exit_code,
-                    summarize_output(&output.stdout, &output.stderr)
-                ));
+                // robocopy failed, will try fallback
             }
-            Err(err) => {
-                robocopy_error = Some(format!("robocopy spawn failed: {}", err));
+            Err(_err) => {
+                // robocopy spawn failed, will try fallback
             }
         }
 
@@ -2579,7 +2576,6 @@ fn download_url_to_file_native(url: &str, out_file: &PathBuf) -> Result<(), Stri
         .arg(url)
         .output();
 
-    let mut curl_error: Option<String> = None;
     match curl {
         Ok(output) => {
             if output.status.success() {
@@ -2587,15 +2583,10 @@ fn download_url_to_file_native(url: &str, out_file: &PathBuf) -> Result<(), Stri
                 fs::rename(&temp_file, out_file).map_err(|err| err.to_string())?;
                 return Ok(());
             }
-            let detail = summarize_output(&output.stdout, &output.stderr);
-            curl_error = Some(if detail.is_empty() {
-                "curl failed with no output".to_string()
-            } else {
-                format!("curl failed: {}", detail)
-            });
+            // curl failed, will try fallback
         }
-        Err(error) => {
-            curl_error = Some(format!("curl unavailable: {}", error));
+        Err(_error) => {
+            // curl unavailable, will try fallback
         }
     }
 
@@ -2653,21 +2644,15 @@ fn extract_zip_to_dir_native(zip_path: &PathBuf, extract_root: &PathBuf) -> Resu
         .arg(extract_root)
         .output();
 
-    let mut tar_error: Option<String> = None;
     match tar {
         Ok(output) => {
             if output.status.success() {
                 return Ok(());
             }
-            let detail = summarize_output(&output.stdout, &output.stderr);
-            tar_error = Some(if detail.is_empty() {
-                "tar failed with no output".to_string()
-            } else {
-                format!("tar failed: {}", detail)
-            });
+            // tar failed, will try fallback
         }
-        Err(error) => {
-            tar_error = Some(format!("tar unavailable: {}", error));
+        Err(_error) => {
+            // tar unavailable, will try fallback
         }
     }
 

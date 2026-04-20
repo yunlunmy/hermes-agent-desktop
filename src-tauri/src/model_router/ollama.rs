@@ -91,6 +91,7 @@ impl OllamaClient {
         })
     }
 
+    #[allow(dead_code)]
     pub async fn chat_stream(
         &self,
         model: &str,
