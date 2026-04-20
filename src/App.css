@@ -179,6 +179,50 @@
 }
 
 /* Settings */
+.settings-panel {
+  padding: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.settings-panel h2 {
+  font-size: 24px;
+  margin-bottom: 24px;
+  color: var(--text-primary);
+}
+
+.settings-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 12px;
+}
+
+.settings-tabs button {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.settings-tabs button:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.settings-tabs button.active {
+  background: var(--primary-bg);
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
 .settings-section {
   margin-bottom: 32px;
 }
@@ -201,7 +245,8 @@
   margin-bottom: 8px;
 }
 
-.setting-item input {
+.setting-item input[type="text"],
+.setting-item input[type="password"] {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--border-color);
@@ -214,6 +259,92 @@
 .setting-item input:focus {
   outline: none;
   border-color: var(--primary-color);
+}
+
+.radio-label {
+  display: flex !important;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.radio-label:hover {
+  background: var(--bg-hover);
+}
+
+.radio-label input[type="radio"] {
+  margin-top: 2px;
+}
+
+.radio-label strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}
+
+.setting-hint {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.save-btn {
+  padding: 10px 24px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.save-btn:hover {
+  background: var(--primary-hover);
+}
+
+.setting-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.setting-actions button {
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.setting-actions button:hover {
+  background: var(--bg-hover);
+}
+
+.help-text {
+  background: var(--bg-secondary);
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.help-text h4 {
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.help-text ol {
+  margin-left: 20px;
+  color: var(--text-secondary);
+}
+
+.help-text li {
+  margin-bottom: 4px;
 }
 
 /* Scrollbar */

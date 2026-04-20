@@ -2,10 +2,13 @@ import { useState, useRef, useEffect } from 'react';
 import { useChatStore } from '../../stores/chatStore';
 import { useModelStore } from '../../stores/modelStore';
 import { ChatMessage } from './ChatMessage';
+import { FileUploader, FilePreview, UploadedFile } from '../FileUploader/FileUploader';
 import './ChatInterface.css';
 
 export function ChatInterface() {
   const [input, setInput] = useState('');
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [showUploader, setShowUploader] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { 
@@ -16,6 +19,7 @@ export function ChatInterface() {
     selectConversation,
     deleteConversation,
     sendMessage,
+    sendMessageWithFiles,
     getCurrentConversation,
   } = useChatStore();
   
@@ -37,11 +41,26 @@ export function ChatInterface() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isGenerating) return;
+    if ((!input.trim() && uploadedFiles.length === 0) || isGenerating) return;
     
     const content = input.trim();
     setInput('');
-    await sendMessage(content);
+    
+    if (uploadedFiles.length > 0) {
+      await sendMessageWithFiles(content, uploadedFiles);
+      setUploadedFiles([]);
+      setShowUploader(false);
+    } else {
+      await sendMessage(content);
+    }
+  };
+
+  const handleFilesUploaded = (files: UploadedFile[]) => {
+    setUploadedFiles(prev => [...prev, ...files].slice(0, 5));
+  };
+
+  const handleRemoveFile = (fileId: string) => {
+    setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -133,23 +152,55 @@ export function ChatInterface() {
         </div>
 
         {/* Input Area */}
-        <form className="chat-input-area" onSubmit={handleSubmit}>
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="输入消息... (Enter 发送, Shift+Enter 换行)"
-            rows={1}
-            disabled={isGenerating}
-          />
+        <div className="chat-input-container">
+          {/* File Upload Button */}
           <button 
-            type="submit" 
-            disabled={!input.trim() || isGenerating}
-            className="send-btn"
+            type="button" 
+            className="upload-toggle-btn"
+            onClick={() => setShowUploader(!showUploader)}
+            title="上传文件"
           >
-            {isGenerating ? '⏳' : '➤'}
+            📎
           </button>
-        </form>
+
+          {/* File Uploader Panel */}
+          {showUploader && (
+            <div className="file-upload-panel">
+              <FileUploader onFilesUploaded={handleFilesUploaded} maxFiles={5 - uploadedFiles.length} />
+            </div>
+          )}
+
+          {/* Uploaded Files List */}
+          {uploadedFiles.length > 0 && (
+            <div className="uploaded-files">
+              {uploadedFiles.map(file => (
+                <FilePreview 
+                  key={file.id} 
+                  file={file} 
+                  onRemove={() => handleRemoveFile(file.id)} 
+                />
+              ))}
+            </div>
+          )}
+
+          <form className="chat-input-area" onSubmit={handleSubmit}>
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={uploadedFiles.length > 0 ? "添加消息描述（可选）..." : "输入消息... (Enter 发送, Shift+Enter 换行)"}
+              rows={1}
+              disabled={isGenerating}
+            />
+            <button 
+              type="submit" 
+              disabled={(!input.trim() && uploadedFiles.length === 0) || isGenerating}
+              className="send-btn"
+            >
+              {isGenerating ? '⏳' : '➤'}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

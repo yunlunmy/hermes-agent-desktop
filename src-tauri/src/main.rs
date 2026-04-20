@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod model_router;
+mod file_processor;
 
 use base64::engine::general_purpose::{URL_SAFE, URL_SAFE_NO_PAD};
 use base64::Engine as _;
@@ -4542,6 +4543,22 @@ async fn set_model_mode(
     Ok(())
 }
 
+// File processing commands
+#[tauri::command]
+async fn analyze_file(file_path: String) -> Result<file_processor::FileAnalysisResult, String> {
+    file_processor::analyze_file(&file_path).await
+}
+
+#[tauri::command]
+async fn extract_text_from_file(file_path: String) -> Result<String, String> {
+    file_processor::ocr::extract_text(&file_path).await
+}
+
+#[tauri::command]
+fn detect_file_type(file_path: String) -> file_processor::FileType {
+    file_processor::detect_file_type(&file_path)
+}
+
 fn main() {
     // Initialize model router with default config
     let router_config = RouterConfig::default();
@@ -4582,7 +4599,11 @@ fn main() {
             chat_with_model,
             list_available_models,
             check_ollama_status,
-            set_model_mode
+            set_model_mode,
+            // File processing commands
+            analyze_file,
+            extract_text_from_file,
+            detect_file_type
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

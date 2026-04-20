@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { invoke } from '@tauri-apps/api/core';
 import { ChatMessage } from './modelStore';
+import { UploadedFile } from '../components/FileUploader/FileUploader';
 
 export interface Conversation {
   id: string;
@@ -22,6 +23,7 @@ interface ChatState {
   deleteConversation: (id: string) => void;
   addMessage: (conversationId: string, message: ChatMessage) => void;
   sendMessage: (content: string) => Promise<void>;
+  sendMessageWithFiles: (content: string, files: UploadedFile[]) => Promise<void>;
   clearConversations: () => void;
   
   // Getters
@@ -113,6 +115,54 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const response = await invoke<{ message: ChatMessage }>('chat_with_model', {
         request: { 
           messages: conversation.messages,
+          stream: false 
+        }
+      });
+
+      // Add assistant message
+      addMessage(conversationId, response.message);
+    } catch (error) {
+      // Add error message
+      addMessage(conversationId, {
+        role: 'assistant',
+        content: `❌ 错误: ${error}`,
+      });
+    } finally {
+      set({ isGenerating: false });
+    }
+  },
+
+  sendMessageWithFiles: async (content, files) => {
+    const { currentConversationId, createConversation, addMessage } = get();
+    
+    let conversationId = currentConversationId;
+    if (!conversationId) {
+      conversationId = createConversation();
+    }
+
+    // Build message with file references
+    let messageContent = content;
+    if (files.length > 0) {
+      const fileList = files.map(f => `[${f.type === 'image' ? '🖼️' : f.type === 'video' ? '🎬' : '📄'} ${f.name}]`).join(' ');
+      messageContent = content ? `${content}\n\n附件: ${fileList}` : `附件: ${fileList}`;
+    }
+
+    // Add user message
+    const userMessage: ChatMessage = { role: 'user', content: messageContent };
+    addMessage(conversationId, userMessage);
+
+    // Get all messages for context
+    const conversation = get().conversations.find(c => c.id === conversationId);
+    if (!conversation) return;
+
+    set({ isGenerating: true });
+
+    try {
+      // Call model router with files
+      const response = await invoke<{ message: ChatMessage }>('chat_with_model', {
+        request: { 
+          messages: conversation.messages,
+          files: files.map(f => ({ path: f.path, type: f.type, name: f.name })),
           stream: false 
         }
       });
