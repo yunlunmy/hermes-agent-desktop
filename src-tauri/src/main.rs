@@ -2323,8 +2323,7 @@ fn copy_dir_with_native_tool(src: &PathBuf, dst: &PathBuf) -> Result<(), String>
         }
         let detail = summarize_output(&output.stdout, &output.stderr);
         return Err(format!(
-            "{} | Copy-Item failed: {}",
-            robocopy_error.unwrap_or_else(|| "robocopy failed (unknown)".to_string()),
+            "robocopy failed | Copy-Item failed: {}",
             if detail.is_empty() { "no output".to_string() } else { detail }
         ));
     }
@@ -2624,7 +2623,7 @@ fn download_url_to_file_native(url: &str, out_file: &PathBuf) -> Result<(), Stri
     Err(
         [
             "Download failed.".to_string(),
-            curl_error.unwrap_or_else(|| "curl failed (unknown)".to_string()),
+            "curl failed".to_string(),
             ps_error,
         ]
         .join(" "),
@@ -2683,7 +2682,7 @@ fn extract_zip_to_dir_native(zip_path: &PathBuf, extract_root: &PathBuf) -> Resu
     Err(
         [
             "Zip extraction failed.".to_string(),
-            tar_error.unwrap_or_else(|| "tar failed (unknown)".to_string()),
+            "tar failed".to_string(),
             ps_error,
         ]
         .join(" "),
