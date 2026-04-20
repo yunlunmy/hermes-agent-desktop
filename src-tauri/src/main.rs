@@ -4,7 +4,7 @@ mod model_router;
 
 use base64::engine::general_purpose::{URL_SAFE, URL_SAFE_NO_PAD};
 use base64::Engine as _;
-use model_router::{ChatRequest, ModelMode, ModelRouter, RouterConfig};
+use model_router::{ChatRequest, ModelMode, ModelRouter, RouterConfig, OllamaStatus};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::fs;
